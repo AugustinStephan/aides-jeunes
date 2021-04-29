@@ -16,7 +16,7 @@
         },
         methods: {
             getTitleByRoute(route) {
-                const step = this.$state.current(route.path, this.$store.state.situation)
+                const step = this.$state.current(route.path, this.$store.getters.getFullSteps)
                 const chapterName = step && step.chapter || ''
                 return Chapters.getLabel(chapterName)
             }

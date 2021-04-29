@@ -12,8 +12,8 @@ import findIndex from 'lodash/findIndex'
 
 import { computeAides, datesGenerator } from '../backend/lib/mes-aides'
 import { categoriesRnc, patrimoineTypes } from './constants/resources'
+import { generateFullSteps } from './lib/State/generator'
 import Institution from './lib/Institution'
-import {full} from './lib/State'
 
 let DATE_FIELDS = ['date_naissance', 'date_arret_de_travail', 'date_debut_chomage']
 
@@ -57,10 +57,8 @@ function defaultCalculs() {
 
 function defaultStore() {
   const now = moment().format()
-  return {
-    message: null,
-    debug: false,
-    situation: {
+
+  const defaultSituation = {
       _id: null,
       external_id: null,
       dateDeValeur: now,
@@ -69,10 +67,16 @@ function defaultStore() {
       logement: {},
       foyer_fiscal: {},
       menage: {
-        aide_logement_date_pret_conventionne: '2017-12-31'
+          aide_logement_date_pret_conventionne: '2017-12-31'
       },
       version: 1,
-    },
+  }
+
+  return {
+    message: null,
+    debug: false,
+    fullSteps: generateFullSteps(defaultSituation),
+    situation: defaultSituation,
     error: false,
     access: {
       fetching: false,
@@ -140,6 +144,9 @@ const store = new Vuex.Store({
     },
     getLogementStatut: function(state) {
       return state.situation.menage && state.situation.menage.statut_occupation_logement
+    },
+    getFullSteps: function (state) {
+      return state.fullSteps
     },
     ressourcesYearMinusTwoCaptured: function(state, getters) {
       const yearMinusTwo = state.dates.fiscalYear.id
@@ -294,6 +301,9 @@ const store = new Vuex.Store({
     setDirty: function(state) {
       state.calculs.dirty = true
     },
+    setFullSteps: function(state) {
+      state.fullSteps = generateFullSteps(state.situation)
+    },
     setThemeColor: function(state, themeColor) {
       state.themeColor = themeColor
     },
@@ -316,14 +326,17 @@ const store = new Vuex.Store({
     },
     removeConjoint: function({ commit }) {
       commit('removeConjoint')
+      commit('setFullSteps')
       commit('setDirty')
     },
     removeEnfant: function({ commit }, id) {
       commit('removeEnfant', id)
+      commit('setFullSteps')
       commit('setDirty')
     },
     addEnfant: function({ commit }, enfant) {
       commit('addEnfant', enfant)
+      commit('setFullSteps')
       commit('setDirty')
     },
     updateError: function({ commit }, error) {
@@ -331,22 +344,26 @@ const store = new Vuex.Store({
     },
     updateIndividu: function({ commit }, individu) {
       commit('saveIndividu', individu)
+      commit('setFullSteps')
       commit('setDirty')
     },
     updateFamille: function({ commit }, famille) {
       commit('saveFamille', famille)
+      commit('setFullSteps')
       commit('setDirty')
     },
     updateFoyerFiscal: function({ commit }, foyer_fiscal) {
       commit('saveFoyerFiscal', foyer_fiscal)
+      commit('setFullSteps')
       commit('setDirty')
     },
     updateMenage: function({ commit }, menage) {
       commit('saveMenage', menage)
+      commit('setFullSteps')
       commit('setDirty')
     },
     save: function(store) {
-      const disabledSteps = full(store.state.situation).filter(s => !s.isActive)
+      const disabledSteps = generateFullSteps(store.state.situation).filter(s => !s.isActive)
       disabledSteps.forEach(step => {
         step.clean(store, true)
       })
